@@ -38,9 +38,9 @@
       name: grafana-server
       enabled: yes
 
-  - name: firewall allow for port 3128
+  - name: firewall allow for port 3000
     firewalld:
-      port: 3128/tcp
+      port: 3000/tcp
       state: enabled
       permanent: yes
 
