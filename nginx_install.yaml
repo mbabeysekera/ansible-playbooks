@@ -1,0 +1,23 @@
+---
+- name: nginx install
+  hosts: dockerhost
+  remote_user: root
+  become: true
+  tasks:
+  - name: epel install
+    yum: 
+      name: epel-release
+      state: latest
+  - name: install nginx server
+    yum:
+      name: nginx
+      state: latest
+  - name: run nginx server
+    service:
+      name: nginx
+      state: started
+  - name: enable nginx at boot
+    service: 
+      name: nginx
+      enabled: yes
+ 

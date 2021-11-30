@@ -1,0 +1,22 @@
+---
+- name: docker install
+  hosts: dockerhost
+  remote_user: root
+  become: true
+  tasks:
+  - name: update package repo
+    shell: yum check-update
+    args:
+      warn: no
+  - name: get docker and install it
+    shell: curl -fsSL https://get.docker.com/ | sh
+    args:
+      warn: no
+  - name: start docker service
+    service:
+      name: docker
+      state: started
+  - name: enable docker at boot
+    service:
+      name: docker
+      enabled: yes

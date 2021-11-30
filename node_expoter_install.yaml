@@ -1,0 +1,57 @@
+---
+- name: Node Expoter Installation
+  hosts: dockerhost
+  remote_user: root
+  become: true
+  vars:
+    node_expoter_location: "/usr/local/bin"
+  tasks:
+  - name: Download node exporter
+    get_url:
+      url: https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz
+      dest: "{{node_expoter_location}}"
+  
+  - name: Extract file
+    shell: tar -xzf node_exporter-1.2.2.linux-amd64.tar.gz && rm -f node_exporter-1.2.2.linux-amd64.tar.gz && mv node_exporter-1.2.2.linux-amd64 node_exporter
+    args:
+      warn: no
+      chdir: "{{node_expoter_location}}"
+  
+  - name: Create node expoter service
+    shell: |
+      cat <<EOF>> node-expoter.service
+      [Unit]
+      Description=Prometheus Node Expoter Service
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart="{{node_expoter_location}}/node_exporter/node_exporter"
+     
+      [Install]
+      WantedBy=multi-user.target
+      EOF
+    args:
+      warn: no
+      chdir: "/etc/systemd/system"
+
+  - name: Systemctl daemon reload
+    systemd:
+      daemon_reload: yes
+
+  - name: start node expoter service
+    service: 
+      name: node-expoter
+      state: started
+      enabled: yes
+
+  - name: firewall allow for port 9100/tcp
+    firewalld:
+      port: 9100/tcp
+      permanent: yes
+      state: enabled
+
+  - name: firewall reload
+    systemd:
+      name: firewalld
+      state: reloaded

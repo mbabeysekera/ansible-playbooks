@@ -1,0 +1,68 @@
+---
+- name: Prometheus Installation
+  hosts: visualizer
+  remote_user: root
+  become: true
+  vars:
+    download_location: "/usr/local/bin"
+  tasks:
+
+  - name: download binaries
+    get_url: 
+      url: https://github.com/prometheus/prometheus/releases/download/v2.31.1/prometheus-2.31.1.linux-amd64.tar.gz
+      dest: "{{download_location}}"
+
+  - name: extract binaries
+    shell: tar -xvf /usr/local/bin/prometheus-2.31.1.linux-amd64.tar.gz
+    args:
+      chdir: "{{download_location}}"
+      warn: no
+
+  - name: remove excess downloads
+    shell: rm -f prometheus-2.31.1.linux-amd64.tar.*
+    args: 
+      chdir: "{{download_location}}"
+      warn: no
+
+  - name: create service for prometheus
+    shell: |
+      cat <<EOF>> prometheus.service
+      [Unit]
+      Description=Prometheus Service
+      After=network.target
+      
+      [Service]
+      Type=simple
+      ExecStart=/usr/local/bin/prometheus-2.31.1.linux-amd64/prometheus --config.file=/usr/local/bin/prometheus-2.31.1.linux-amd64/prometheus.yml
+       
+      [Install]
+      WantedBy=multi-user.target
+      EOF
+    args:
+      chdir: /etc/systemd/system
+      warn: no
+
+  - name: reload systemctl daemon
+    systemd:
+      daemon_reload: yes
+
+  - name: start prometeus service
+    service:
+      name: prometheus
+      state: started
+
+  - name: enable prometheus at boot
+    service:
+      name: prometheus
+      enabled: yes
+  
+  - name: enable firewall for port 9090/tcp
+    firewalld:
+      port: 9090/tcp
+      state: enabled
+      permanent: yes
+  
+  - name: reload firewall
+    systemd:
+      name: firewalld
+      state: reloaded

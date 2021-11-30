@@ -1,0 +1,51 @@
+---
+- name: Grafana Installation
+  hosts: visualizer
+  remote_user: root
+  become: true
+  tasks:
+  - name: update system
+    yum:
+      name: '*'
+      state: latest
+
+  - name: install wget 
+    yum:
+      name: wget
+      state: present
+
+  - name: get grafana package
+    shell: wget https://dl.grafana.com/enterprise/release/grafana-enterprise-8.2.4-1.x86_64.rpm
+    args:
+      warn: no
+
+  - name: install grafana
+    yum:
+      name: grafana-enterprise-8.2.4-1.x86_64.rpm
+      state: present
+
+  - name: reload daemon
+    systemd:
+      daemon_reload: yes
+
+  - name: start garafana server
+    service:
+      name: grafana-server
+      state: started
+
+  - name: enable grafana at boot
+    service:
+      name: grafana-server
+      enabled: yes
+
+  - name: firewall allow for port 3128
+    firewalld:
+      port: 3128/tcp
+      state: enabled
+      permanent: yes
+
+  - name: reload firewall
+    systemd:
+      name: firewalld
+      state: reloaded
+    

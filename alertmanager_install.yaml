@@ -1,0 +1,60 @@
+---
+- name: Prometheus Alert Manager Install
+  hosts: visualizer
+  remote_user: root
+  become: true
+  vars:
+    altermanager_location: "/usr/local/bin"
+  tasks:
+  
+  - name: download altermanager
+    get_url:
+      url: https://github.com/prometheus/alertmanager/releases/download/v0.23.0/alertmanager-0.23.0.linux-amd64.tar.gz
+      dest: "{{altermanager_location}}"
+  
+  - name: extract file
+    shell: |
+      tar -xzf alertmanager-0.23.0.linux-amd64.tar.gz
+      rm -rf alertmanager-0.23.0.linux-amd64.tar.gz
+      mv alertmanager-0.23.0.linux-amd64 alertmanager
+    args:
+      warn: no
+      chdir: "{{altermanager_location}}"
+
+  - name: service create
+    shell: |
+      cat <<EOF>> alertmanager.service
+      [Unit]
+      Description=Prometheus Alert Manager
+      After=network.target
+      
+      [Service]
+      Type=simple
+      ExecStart={{altermanager_location}}/alertmanager/alertmanager --config.file={{altermanager_location}}/alertmanager/alertmanager.yml
+      
+      [Install]
+      WantedBy=multi-user.target
+    args:
+      warn: no
+      chdir: "/etc/systemd/system"
+  
+  - name: systemctl daemon reload
+    systemd: 
+      daemon_reload: yes
+    
+  - name: service start
+    service:
+      name: alertmanager
+      state: started
+      enabled: yes
+
+  - name: firewall enable for port 9093/tcp
+    firewalld:
+      port: 9093/tcp
+      permanent: yes
+      state: enabled
+
+  - name: firewall reload
+    systemd:
+      name: firewalld
+      state: reloaded
